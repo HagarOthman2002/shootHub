@@ -1,4 +1,3 @@
-
 import {
   pgTable,
   pgEnum,
@@ -12,11 +11,14 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { relations } from "drizzle-orm";
-
 // ==========================================
 // 1. ENUMS & TYPES
 // ==========================================
+
+export const userRoleEnum = pgEnum("user_role", [
+  "customer",
+  "owner",
+]);
 
 export const listingStatusEnum = pgEnum("listing_status", [
   "draft",
@@ -77,6 +79,9 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "new_review",
 ]);
 
+export type UserRole =
+  (typeof userRoleEnum.enumValues)[number];
+
 export type BookingStatus =
   (typeof bookingStatusEnum.enumValues)[number];
 
@@ -105,6 +110,8 @@ export const users = pgTable("users", {
   imageKitFileId: text("image_kit_file_id"),
 
   bio: text("bio"),
+
+  role: userRoleEnum("role").notNull().default("customer"),
 
   isAdmin: boolean("is_admin").notNull().default(false),
 
@@ -526,8 +533,6 @@ export const notifications = pgTable(
     index("notifications_user_idx").on(table.userId),
   ]
 );
-
-
 
 export const locationBlockedPeriods = pgTable(
   "location_blocked_periods",
