@@ -33,6 +33,7 @@ if(fs.existsSync(publicDir)){
     if(req.method !== "GET" && req.method !== "HEAD"){
       next()
       return
+      
     }
     if (req.path.startsWith("/api") || req.path.startsWith("/webhooks")){
       next()
