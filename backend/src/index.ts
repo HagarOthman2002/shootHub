@@ -15,13 +15,13 @@ const app = express()
 
 app.use(cors())
 
-const rawJson = express.raw({ type: "application/json" , limit :"1m" })
+const rawJson = express.raw({ type: "application/json" , limit :"10mb" })
 
 app.post("/webhooks/clerk", rawJson,(req, res) => {
   void clerkWebhookHandler(req, res)
 })
 
-app.use(express.json())
+app.use(express.json({ limit: "10mb" }));
 
 app.use(clerkMiddleware())
 
@@ -43,10 +43,17 @@ if(fs.existsSync(publicDir)){
   })
 }
 
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const anyErr = err as { status?: number; statusCode?: number; type?: string; message?: string };
   const status = anyErr?.status ?? anyErr?.statusCode ?? 500;
-  console.error("Express error:", { status, type: anyErr?.type, message: anyErr?.message });
+  console.error("Express error:", {
+    method: req.method,
+    url: req.originalUrl,
+    contentLength: req.headers["content-length"],
+    status,
+    type: anyErr?.type,
+    message: anyErr?.message,
+  });
   res.status(status).json({ error: status === 413 ? "Payload too large" : "Internal server error" });
 });
 
