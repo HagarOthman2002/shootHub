@@ -583,3 +583,86 @@ export const equipmentBlockedPeriods = pgTable(
     }).defaultNow().notNull(),
   }
 );
+
+
+// ==========================================
+// 12. FREELANCERS & FREELANCER BOOKINGS
+// ==========================================
+
+export const freelancers = pgTable(
+  "freelancers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    specialty: text("specialty").notNull(), // e.g., photographer, videographer, gaffer, editor
+
+    bio: text("bio"),
+
+    city: text("city").notNull(),
+
+    priceCents: integer("price_cents").notNull(),
+
+    currency: text("currency").notNull().default("EGP"),
+
+    pricingUnit: pricingUnitEnum("pricing_unit").notNull().default("day"),
+
+    portfolioUrls: jsonb("portfolio_urls").$type<string[]>().notNull().default([]),
+
+    isAvailable: boolean("is_available").notNull().default(true),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("freelancers_city_idx").on(table.city),
+    index("freelancers_available_idx").on(table.isAvailable),
+  ]
+);
+
+export const freelancerBookings = pgTable(
+  "freelancer_bookings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+
+    freelancerId: uuid("freelancer_id")
+      .notNull()
+      .references(() => freelancers.id, { onDelete: "restrict" }),
+
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+
+    endAt: timestamp("end_at", { withTimezone: true }).notNull(),
+
+    totalPriceCents: integer("total_price_cents").notNull(),
+
+    currency: text("currency").notNull().default("EGP"),
+
+    notes: text("notes"),
+
+    status: bookingStatusEnum("status").notNull().default("pending"),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("freelancer_bookings_user_idx").on(table.userId),
+    index("freelancer_bookings_freelancer_idx").on(table.freelancerId),
+    index("freelancer_bookings_status_idx").on(table.status),
+  ]
+);
