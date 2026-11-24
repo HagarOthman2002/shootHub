@@ -43,5 +43,12 @@ if(fs.existsSync(publicDir)){
   })
 }
 
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const anyErr = err as { status?: number; statusCode?: number; type?: string; message?: string };
+  const status = anyErr?.status ?? anyErr?.statusCode ?? 500;
+  console.error("Express error:", { status, type: anyErr?.type, message: anyErr?.message });
+  res.status(status).json({ error: status === 413 ? "Payload too large" : "Internal server error" });
+});
+
 app.listen(env.PORT, ()=> console.log("listening on port:" , env.PORT))
 
