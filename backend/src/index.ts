@@ -5,6 +5,11 @@ import cors from "cors"
 import fs from "node:fs"
 import path from "node:path"
 
+import { locationsRouter } from "./routes/locations";
+import { equipmentRouter } from "./routes/equipment";
+import { freelancersRouter } from "./routes/freelancers";
+import { bookingsRouter } from "./routes/bookings";
+
 
 import {clerkMiddleware} from "@clerk/express"
 import {clerkWebhookHandler} from "./webhooks/clerk"
@@ -24,6 +29,15 @@ app.post("/webhooks/clerk", rawJson,(req, res) => {
 app.use(express.json({ limit: "10mb" }));
 
 app.use(clerkMiddleware())
+
+
+
+
+
+app.use("/api/locations", locationsRouter);
+app.use("/api/equipment", equipmentRouter);
+app.use("/api/freelancers", freelancersRouter);
+app.use("/api/bookings", bookingsRouter);
 
 const publicDir = path.join(process.cwd(), "public")
 if(fs.existsSync(publicDir)){
