@@ -1031,16 +1031,16 @@ export default function App() {
             <strong>ShootHub</strong> — منصة حجز الاستوديوهات والمعدات والفريلانسرز.
           </div>
           <div className="nav-links">
-            <button type="button" className="nav-btn" onClick={() => setTab("locations")}>
+            <button type="button" className="footer-link" onClick={() => setTab("locations")}>
               الاستوديوهات
             </button>
-            <button type="button" className="nav-btn" onClick={() => setTab("equipment")}>
+            <button type="button" className="footer-link" onClick={() => setTab("equipment")}>
               المعدات
             </button>
-            <button type="button" className="nav-btn" onClick={() => setTab("freelancers")}>
+            <button type="button" className="footer-link" onClick={() => setTab("freelancers")}>
               الفريلانسرز
             </button>
-            <button type="button" className="nav-btn" onClick={() => setTab("create")}>
+            <button type="button" className="footer-link" onClick={() => setTab("create")}>
               أضف إعلانك
             </button>
           </div>
