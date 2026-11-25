@@ -37,6 +37,7 @@ export default function App() {
 
   const [tab, setTab] = useState("locations");
   const [cityFilter, setCityFilter] = useState("");
+  const [whenFilter, setWhenFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState(null);
@@ -182,6 +183,16 @@ export default function App() {
     [bookingTarget]
   );
 
+  function handleHeroSearch(e) {
+    e.preventDefault();
+    if (["locations", "equipment", "freelancers"].includes(tab)) {
+      void loadListings();
+    } else {
+      setTab("locations");
+    }
+    document.getElementById("marketplace-section")?.scrollIntoView({ behavior: "smooth" });
+  }
+
   function openBooking(type, item) {
     const label =
       type === "locations"
@@ -197,7 +208,7 @@ export default function App() {
       priceCents: item.priceCents,
       pricingUnit: item.pricingUnit || "hour",
       currency: item.currency || "EGP",
-      startAt: "",
+      startAt: whenFilter || "",
       endAt: "",
       notes: "",
     });
@@ -442,519 +453,599 @@ export default function App() {
   }
 
   return (
-    <div className="container">
-      <header className="topbar">
-        <div className="brand">
-          Shoot<span>Hub</span>
-        </div>
-        <div className="auth-actions">
-          <SignedOut>
-            <SignInButton />
-            <SignUpButton />
-          </SignedOut>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
-        </div>
-      </header>
-
-      <nav className="tabs">
-        <button
-          type="button"
-          className={`tab-btn ${tab === "locations" ? "active" : ""}`}
-          onClick={() => setTab("locations")}
-        >
-          استوديوهات وأماكن ({locationsList.length})
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${tab === "equipment" ? "active" : ""}`}
-          onClick={() => setTab("equipment")}
-        >
-          معدات ({equipmentList.length})
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${tab === "freelancers" ? "active" : ""}`}
-          onClick={() => setTab("freelancers")}
-        >
-          فريلانسرز ({freelancersList.length})
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${tab === "bookings" ? "active" : ""}`}
-          onClick={() => setTab("bookings")}
-        >
-          حجوزاتي والواردة
-        </button>
-        <button
-          type="button"
-          className={`tab-btn ${tab === "create" ? "active" : ""}`}
-          onClick={() => setTab("create")}
-        >
-          إضافة عنصر / بروفايل
-        </button>
-      </nav>
-
-      {["locations", "equipment", "freelancers"].includes(tab) && (
-        <div className="filter-bar">
-          <input
-            type="text"
-            placeholder="ابحث بالمدينة (مثال: Cairo)"
-            value={cityFilter}
-            onChange={(e) => setCityFilter(e.target.value)}
-          />
-          <button type="button" className="btn" onClick={() => void loadListings()}>
-            تحديث النتائج
-          </button>
-          {cityFilter && (
-            <button type="button" className="btn" onClick={() => setCityFilter("")}>
-              مسح الفلتر
-            </button>
-          )}
-        </div>
-      )}
-
-      {banner && <div className={`banner ${banner.type}`}>{banner.text}</div>}
-      {loading && <p>جاري التحميل...</p>}
-
-      {tab === "locations" && (
-        <div className="grid">
-          {locationsList.map((loc) => (
-            <article key={loc.id} className="card">
-              <div
-                className="card-media"
-                style={
-                  loc.primaryImageUrl
-                    ? { backgroundImage: `url(${loc.primaryImageUrl})` }
-                    : undefined
-                }
-              >
-                <span className="pill">{loc.category}</span>
-                <span className="pill">{loc.city}</span>
-              </div>
-              <div className="card-body">
-                <h3 className="card-title">{loc.name}</h3>
-                <p className="card-desc">{loc.description}</p>
-                <div className="card-footer">
-                  <div className="price">
-                    {formatMoney(loc.priceCents, loc.currency)}{" "}
-                    <small>/ {loc.pricingUnit}</small>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => openBooking("locations", loc)}
-                  >
-                    احجز
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {tab === "equipment" && (
-        <div className="grid">
-          {equipmentList.map((item) => (
-            <article key={item.id} className="card">
-              <div
-                className="card-media"
-                style={
-                  item.primaryImageUrl
-                    ? { backgroundImage: `url(${item.primaryImageUrl})` }
-                    : undefined
-                }
-              >
-                <span className="pill">{item.category}</span>
-                <span className="pill">{item.city}</span>
-              </div>
-              <div className="card-body">
-                <h3 className="card-title">{item.name}</h3>
-                <p className="card-desc">{item.description}</p>
-                <p className="card-desc">
-                  تأمين: {formatMoney(item.depositCents, item.currency)}
-                </p>
-                <div className="card-footer">
-                  <div className="price">
-                    {formatMoney(item.priceCents, item.currency)}{" "}
-                    <small>/ {item.pricingUnit}</small>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => openBooking("equipment", item)}
-                  >
-                    احجز
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {tab === "freelancers" && (
-        <div className="grid">
-          {freelancersList.map((fl) => (
-            <article key={fl.id} className="card">
-              <div className="card-media">
-                <span className="pill">{fl.specialty}</span>
-                <span className="pill">{fl.city}</span>
-              </div>
-              <div className="card-body">
-                <h3 className="card-title">{fl.specialty}</h3>
-                <p className="card-desc">{fl.bio || "متاح لحجوزات التصوير والإنتاج."}</p>
-                <div className="card-footer">
-                  <div className="price">
-                    {formatMoney(fl.priceCents, fl.currency)}{" "}
-                    <small>/ {fl.pricingUnit}</small>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => openBooking("freelancers", fl)}
-                  >
-                    احجز
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {bookingTarget.id && (
-        <form className="panel" onSubmit={(e) => void handleCreateBooking(e)}>
-          <h3>حجز: {bookingTarget.label}</h3>
-          <div className="form-row">
-            <label>
-              من:{" "}
-              <input
-                type="datetime-local"
-                required
-                value={bookingTarget.startAt}
-                onChange={(e) => setBookingTarget((p) => ({ ...p, startAt: e.target.value }))}
-              />
-            </label>
-            <label>
-              إلى:{" "}
-              <input
-                type="datetime-local"
-                required
-                value={bookingTarget.endAt}
-                onChange={(e) => setBookingTarget((p) => ({ ...p, endAt: e.target.value }))}
-              />
-            </label>
-            <input
-              type="text"
-              placeholder="ملاحظات (اختياري)"
-              value={bookingTarget.notes}
-              onChange={(e) => setBookingTarget((p) => ({ ...p, notes: e.target.value }))}
-            />
+    <div>
+      <header className="site-header">
+        <div className="header-inner">
+          <div className="brand" onClick={() => setTab("locations")}>
+            Shoot<span>Hub</span>
           </div>
-          {previewTotalCents !== null && (
-            <p className="price">
-              التكلفة التقديرية: {formatMoney(previewTotalCents, bookingTarget.currency)}
-            </p>
-          )}
-          <div className="form-row">
-            <button type="submit" className="btn btn-primary">
-              تأكيد الحجز
+
+          <nav className="nav-links">
+            <button
+              type="button"
+              className={`nav-btn ${tab === "locations" ? "active" : ""}`}
+              onClick={() => setTab("locations")}
+            >
+              استوديوهات ({locationsList.length})
             </button>
             <button
               type="button"
-              className="btn"
-              onClick={() => setBookingTarget((p) => ({ ...p, id: "", label: "" }))}
+              className={`nav-btn ${tab === "equipment" ? "active" : ""}`}
+              onClick={() => setTab("equipment")}
             >
-              إلغاء
+              معدات ({equipmentList.length})
+            </button>
+            <button
+              type="button"
+              className={`nav-btn ${tab === "freelancers" ? "active" : ""}`}
+              onClick={() => setTab("freelancers")}
+            >
+              فريلانسرز ({freelancersList.length})
+            </button>
+            <button
+              type="button"
+              className={`nav-btn ${tab === "bookings" ? "active" : ""}`}
+              onClick={() => setTab("bookings")}
+            >
+              حجوزاتي
+            </button>
+            <button
+              type="button"
+              className={`nav-btn ${tab === "create" ? "active" : ""}`}
+              onClick={() => setTab("create")}
+            >
+              أضف إعلانك
+            </button>
+          </nav>
+
+          <div className="auth-actions">
+            <SignedOut>
+              <SignInButton />
+              <SignUpButton />
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
+          </div>
+        </div>
+      </header>
+
+      <section className="hero">
+        <div className="hero-content">
+          <h1>صوّر وأنتج داخل مساحات ومعدات جاهزة</h1>
+          <p>احجز استوديوهات تصوير، كاميرات ومعدات إضاءة، وفريلانسرز بسهولة في مكان واحد.</p>
+
+          <form className="hero-search" onSubmit={handleHeroSearch}>
+            <div className="search-field">
+              <label htmlFor="hero-what">ماذا تبحث عنه؟</label>
+              <select
+                id="hero-what"
+                value={["locations", "equipment", "freelancers"].includes(tab) ? tab : "locations"}
+                onChange={(e) => setTab(e.target.value)}
+              >
+                <option value="locations">استوديوهات وأماكن</option>
+                <option value="equipment">معدات تصوير وإضاءة</option>
+                <option value="freelancers">فريلانسرز وطاقم عمل</option>
+              </select>
+            </div>
+
+            <div className="search-field">
+              <label htmlFor="hero-where">أين؟</label>
+              <input
+                id="hero-where"
+                type="text"
+                placeholder="القاهرة، الجيزة، الإسكندرية..."
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="search-field">
+              <label htmlFor="hero-when">متى؟</label>
+              <input
+                id="hero-when"
+                type="datetime-local"
+                value={whenFilter}
+                onChange={(e) => setWhenFilter(e.target.value)}
+              />
+            </div>
+
+            <button type="submit" className="search-submit">
+              بحث
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <main className="container" id="marketplace-section">
+        <h2 className="section-title">خدمات ShootHub</h2>
+        <div className="services-grid">
+          <div className="service-card" onClick={() => setTab("locations")}>
+            <h3>إيجار الاستوديوهات والأماكن</h3>
+            <p>استوديوهات إضاءة، فيلات، أسطح، وأماكن تصوير متنوعة بالساعة أو اليوم.</p>
+          </div>
+          <div className="service-card" onClick={() => setTab("equipment")}>
+            <h3>إيجار المعدات</h3>
+            <p>كاميرات، عدسات، إضاءة، صوت، ومثبتات حركة بشروط واضحة وتأمين شفاف.</p>
+          </div>
+          <div className="service-card" onClick={() => setTab("freelancers")}>
+            <h3>حجز الفريلانسرز</h3>
+            <p>مصورون، مخرجو إضاءة، ومبدعون متاحون لحجوزات الإنتاج والتصوير.</p>
+          </div>
+        </div>
+
+        {banner && <div className={`banner ${banner.type}`}>{banner.text}</div>}
+        {loading && <p>جاري التحميل...</p>}
+
+        {tab === "locations" && (
+          <>
+            <h2 className="section-title">الاستوديوهات والأماكن المتاحة</h2>
+            <div className="grid">
+              {locationsList.map((loc) => (
+                <article key={loc.id} className="card">
+                  <div
+                    className="card-media"
+                    style={
+                      loc.primaryImageUrl
+                        ? { backgroundImage: `url(${loc.primaryImageUrl})` }
+                        : undefined
+                    }
+                  >
+                    <span className="pill">{loc.category}</span>
+                    <span className="pill">{loc.city}</span>
+                  </div>
+                  <div className="card-body">
+                    <h3 className="card-title">{loc.name}</h3>
+                    <p className="card-desc">{loc.description}</p>
+                    <div className="card-footer">
+                      <div className="price">
+                        {formatMoney(loc.priceCents, loc.currency)}{" "}
+                        <small>/ {loc.pricingUnit}</small>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => openBooking("locations", loc)}
+                      >
+                        احجز
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === "equipment" && (
+          <>
+            <h2 className="section-title">المعدات المتاحة</h2>
+            <div className="grid">
+              {equipmentList.map((item) => (
+                <article key={item.id} className="card">
+                  <div
+                    className="card-media"
+                    style={
+                      item.primaryImageUrl
+                        ? { backgroundImage: `url(${item.primaryImageUrl})` }
+                        : undefined
+                    }
+                  >
+                    <span className="pill">{item.category}</span>
+                    <span className="pill">{item.city}</span>
+                  </div>
+                  <div className="card-body">
+                    <h3 className="card-title">{item.name}</h3>
+                    <p className="card-desc">{item.description}</p>
+                    <p className="card-desc">
+                      تأمين: {formatMoney(item.depositCents, item.currency)}
+                    </p>
+                    <div className="card-footer">
+                      <div className="price">
+                        {formatMoney(item.priceCents, item.currency)}{" "}
+                        <small>/ {item.pricingUnit}</small>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => openBooking("equipment", item)}
+                      >
+                        احجز
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === "freelancers" && (
+          <>
+            <h2 className="section-title">الفريلانسرز المتاحون</h2>
+            <div className="grid">
+              {freelancersList.map((fl) => (
+                <article key={fl.id} className="card">
+                  <div className="card-media">
+                    <span className="pill">{fl.specialty}</span>
+                    <span className="pill">{fl.city}</span>
+                  </div>
+                  <div className="card-body">
+                    <h3 className="card-title">{fl.specialty}</h3>
+                    <p className="card-desc">{fl.bio || "متاح لحجوزات التصوير والإنتاج."}</p>
+                    <div className="card-footer">
+                      <div className="price">
+                        {formatMoney(fl.priceCents, fl.currency)}{" "}
+                        <small>/ {fl.pricingUnit}</small>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => openBooking("freelancers", fl)}
+                      >
+                        احجز
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+
+        {bookingTarget.id && (
+          <form className="panel" onSubmit={(e) => void handleCreateBooking(e)}>
+            <h3>حجز: {bookingTarget.label}</h3>
+            <div className="form-row">
+              <label>
+                من:{" "}
+                <input
+                  type="datetime-local"
+                  required
+                  value={bookingTarget.startAt}
+                  onChange={(e) => setBookingTarget((p) => ({ ...p, startAt: e.target.value }))}
+                />
+              </label>
+              <label>
+                إلى:{" "}
+                <input
+                  type="datetime-local"
+                  required
+                  value={bookingTarget.endAt}
+                  onChange={(e) => setBookingTarget((p) => ({ ...p, endAt: e.target.value }))}
+                />
+              </label>
+              <input
+                type="text"
+                placeholder="ملاحظات (اختياري)"
+                value={bookingTarget.notes}
+                onChange={(e) => setBookingTarget((p) => ({ ...p, notes: e.target.value }))}
+              />
+            </div>
+            {previewTotalCents !== null && (
+              <p className="price">
+                التكلفة التقديرية: {formatMoney(previewTotalCents, bookingTarget.currency)}
+              </p>
+            )}
+            <div className="form-row">
+              <button type="submit" className="btn btn-primary">
+                تأكيد الحجز
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setBookingTarget((p) => ({ ...p, id: "", label: "" }))}
+              >
+                إلغاء
+              </button>
+            </div>
+          </form>
+        )}
+
+        {tab === "bookings" && (
+          <div>
+            {!isSignedIn ? (
+              <p>سجّل دخولك لعرض حجوزاتك والحجوزات الواردة.</p>
+            ) : (
+              <>
+                <h2 className="section-title">حجوزاتي</h2>
+                {["locations", "equipment", "freelancers"].map((type) =>
+                  (myBookings[type] || []).map((b) => (
+                    <div key={b.id} className="booking-card">
+                      <div className="form-row">
+                        <strong>{type}</strong>
+                        <span className={`status-badge ${b.status}`}>{b.status}</span>
+                        <span>الإجمالي: {formatMoney(b.totalPriceCents, b.currency)}</span>
+                      </div>
+                      <p className="card-desc">
+                        من {new Date(b.startAt).toLocaleString()} إلى {new Date(b.endAt).toLocaleString()}
+                      </p>
+                      {b.status !== "cancelled" && b.status !== "rejected" && (
+                        <button
+                          type="button"
+                          className="btn btn-reject"
+                          onClick={() => void handleBookingStatus(type, b.id, "cancelled")}
+                        >
+                          إلغاء الحجز
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+
+                <h2 className="section-title">الحجوزات الواردة</h2>
+                {["locations", "equipment", "freelancers"].map((type) =>
+                  (incomingBookings[type] || []).map((b) => (
+                    <div key={b.id} className="booking-card">
+                      <div className="form-row">
+                        <strong>{type}</strong>
+                        <span className={`status-badge ${b.status}`}>{b.status}</span>
+                        <span>الإجمالي: {formatMoney(b.totalPriceCents, b.currency)}</span>
+                      </div>
+                      <p className="card-desc">
+                        من {new Date(b.startAt).toLocaleString()} إلى {new Date(b.endAt).toLocaleString()}
+                      </p>
+                      <div className="form-row">
+                        <button
+                          type="button"
+                          className="btn btn-approve"
+                          onClick={() => void handleBookingStatus(type, b.id, "approved")}
+                        >
+                          قبول
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-reject"
+                          onClick={() => void handleBookingStatus(type, b.id, "rejected")}
+                        >
+                          رفض
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === "create" && (
+          <div>
+            {!isSignedIn ? (
+              <p>سجّل دخولك لإضافة استوديو أو معدة أو حفظ بروفايل فريلانس.</p>
+            ) : (
+              <>
+                <form className="panel" onSubmit={(e) => void handleCreateLocation(e)}>
+                  <h3>إضافة استوديو / مكان</h3>
+                  <div className="form-row">
+                    <input
+                      placeholder="الاسم"
+                      required
+                      value={locForm.name}
+                      onChange={(e) => setLocForm((p) => ({ ...p, name: e.target.value }))}
+                    />
+                    <input
+                      placeholder="Slug (مثال: daylight-studio-1)"
+                      required
+                      value={locForm.slug}
+                      onChange={(e) => setLocForm((p) => ({ ...p, slug: e.target.value }))}
+                    />
+                    <input
+                      placeholder="المدينة"
+                      required
+                      value={locForm.city}
+                      onChange={(e) => setLocForm((p) => ({ ...p, city: e.target.value }))}
+                    />
+                    <input
+                      placeholder="العنوان"
+                      required
+                      value={locForm.address}
+                      onChange={(e) => setLocForm((p) => ({ ...p, address: e.target.value }))}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <input
+                      placeholder="الوصف"
+                      required
+                      value={locForm.description}
+                      onChange={(e) => setLocForm((p) => ({ ...p, description: e.target.value }))}
+                    />
+                    <select
+                      value={locForm.category}
+                      onChange={(e) => setLocForm((p) => ({ ...p, category: e.target.value }))}
+                    >
+                      <option value="studio">studio</option>
+                      <option value="villa">villa</option>
+                      <option value="rooftop">rooftop</option>
+                      <option value="garden">garden</option>
+                      <option value="other">other</option>
+                    </select>
+                    <input
+                      type="number"
+                      placeholder="السعر (EGP)"
+                      required
+                      value={locForm.priceEgp}
+                      onChange={(e) => setLocForm((p) => ({ ...p, priceEgp: e.target.value }))}
+                    />
+                    <select
+                      value={locForm.pricingUnit}
+                      onChange={(e) => setLocForm((p) => ({ ...p, pricingUnit: e.target.value }))}
+                    >
+                      <option value="hour">hour</option>
+                      <option value="day">day</option>
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <label>
+                      صور المكان (رفع مباشر):{" "}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => setLocFiles(Array.from(e.target.files || []))}
+                      />
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="أو رابط صورة مباشر (اختياري)"
+                      value={locForm.imageUrl}
+                      onChange={(e) => setLocForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                    />
+                    <button type="submit" className="btn btn-primary" disabled={submitting}>
+                      {submitting ? "جاري الرفع والحفظ..." : "حفظ المكان"}
+                    </button>
+                  </div>
+                </form>
+
+                <form className="panel" onSubmit={(e) => void handleCreateEquipment(e)}>
+                  <h3>إضافة معدة</h3>
+                  <div className="form-row">
+                    <input
+                      placeholder="الاسم"
+                      required
+                      value={eqForm.name}
+                      onChange={(e) => setEqForm((p) => ({ ...p, name: e.target.value }))}
+                    />
+                    <input
+                      placeholder="Slug (مثال: sony-fx3-body)"
+                      required
+                      value={eqForm.slug}
+                      onChange={(e) => setEqForm((p) => ({ ...p, slug: e.target.value }))}
+                    />
+                    <input
+                      placeholder="المدينة"
+                      required
+                      value={eqForm.city}
+                      onChange={(e) => setEqForm((p) => ({ ...p, city: e.target.value }))}
+                    />
+                    <select
+                      value={eqForm.category}
+                      onChange={(e) => setEqForm((p) => ({ ...p, category: e.target.value }))}
+                    >
+                      <option value="camera">camera</option>
+                      <option value="lens">lens</option>
+                      <option value="lighting">lighting</option>
+                      <option value="audio">audio</option>
+                      <option value="stabilizer">stabilizer</option>
+                      <option value="other">other</option>
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <input
+                      placeholder="الوصف"
+                      required
+                      value={eqForm.description}
+                      onChange={(e) => setEqForm((p) => ({ ...p, description: e.target.value }))}
+                    />
+                    <input
+                      type="number"
+                      placeholder="السعر (EGP)"
+                      required
+                      value={eqForm.priceEgp}
+                      onChange={(e) => setEqForm((p) => ({ ...p, priceEgp: e.target.value }))}
+                    />
+                    <input
+                      type="number"
+                      placeholder="التأمين (EGP)"
+                      value={eqForm.depositEgp}
+                      onChange={(e) => setEqForm((p) => ({ ...p, depositEgp: e.target.value }))}
+                    />
+                    <select
+                      value={eqForm.pricingUnit}
+                      onChange={(e) => setEqForm((p) => ({ ...p, pricingUnit: e.target.value }))}
+                    >
+                      <option value="day">day</option>
+                      <option value="hour">hour</option>
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <label>
+                      صور المعدة (رفع مباشر):{" "}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => setEqFiles(Array.from(e.target.files || []))}
+                      />
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="أو رابط صورة مباشر (اختياري)"
+                      value={eqForm.imageUrl}
+                      onChange={(e) => setEqForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                    />
+                    <button type="submit" className="btn btn-primary" disabled={submitting}>
+                      {submitting ? "جاري الرفع والحفظ..." : "حفظ المعدة"}
+                    </button>
+                  </div>
+                </form>
+
+                <form className="panel" onSubmit={(e) => void handleSaveFreelancer(e)}>
+                  <h3>بروفايل الفريلانس الخاص بي</h3>
+                  <div className="form-row">
+                    <input
+                      placeholder="التخصص (مثال: photographer)"
+                      required
+                      value={flForm.specialty}
+                      onChange={(e) => setFlForm((p) => ({ ...p, specialty: e.target.value }))}
+                    />
+                    <input
+                      placeholder="المدينة"
+                      required
+                      value={flForm.city}
+                      onChange={(e) => setFlForm((p) => ({ ...p, city: e.target.value }))}
+                    />
+                    <input
+                      placeholder="نبذة مختصرة"
+                      value={flForm.bio}
+                      onChange={(e) => setFlForm((p) => ({ ...p, bio: e.target.value }))}
+                    />
+                    <input
+                      type="number"
+                      placeholder="السعر (EGP)"
+                      required
+                      value={flForm.priceEgp}
+                      onChange={(e) => setFlForm((p) => ({ ...p, priceEgp: e.target.value }))}
+                    />
+                    <select
+                      value={flForm.pricingUnit}
+                      onChange={(e) => setFlForm((p) => ({ ...p, pricingUnit: e.target.value }))}
+                    >
+                      <option value="day">day</option>
+                      <option value="hour">hour</option>
+                    </select>
+                    <button type="submit" className="btn btn-primary">
+                      حفظ البروفايل
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        )}
+      </main>
+
+      <footer className="site-footer">
+        <div className="footer-inner">
+          <div>
+            <strong>ShootHub</strong> — منصة حجز الاستوديوهات والمعدات والفريلانسرز.
+          </div>
+          <div className="nav-links">
+            <button type="button" className="nav-btn" onClick={() => setTab("locations")}>
+              الاستوديوهات
+            </button>
+            <button type="button" className="nav-btn" onClick={() => setTab("equipment")}>
+              المعدات
+            </button>
+            <button type="button" className="nav-btn" onClick={() => setTab("freelancers")}>
+              الفريلانسرز
+            </button>
+            <button type="button" className="nav-btn" onClick={() => setTab("create")}>
+              أضف إعلانك
             </button>
           </div>
-        </form>
-      )}
-
-      {tab === "bookings" && (
-        <div>
-          {!isSignedIn ? (
-            <p>سجّل دخولك لعرض حجوزاتك والحجوزات الواردة.</p>
-          ) : (
-            <>
-              <h3>حجوزاتي</h3>
-              {["locations", "equipment", "freelancers"].map((type) =>
-                (myBookings[type] || []).map((b) => (
-                  <div key={b.id} className="booking-card">
-                    <div className="form-row">
-                      <strong>{type}</strong>
-                      <span className={`status-badge ${b.status}`}>{b.status}</span>
-                      <span>الإجمالي: {formatMoney(b.totalPriceCents, b.currency)}</span>
-                    </div>
-                    <p className="card-desc">
-                      من {new Date(b.startAt).toLocaleString()} إلى {new Date(b.endAt).toLocaleString()}
-                    </p>
-                    {b.status !== "cancelled" && b.status !== "rejected" && (
-                      <button
-                        type="button"
-                        className="btn btn-reject"
-                        onClick={() => void handleBookingStatus(type, b.id, "cancelled")}
-                      >
-                        إلغاء الحجز
-                      </button>
-                    )}
-                  </div>
-                ))
-              )}
-
-              <h3>الحجوزات الواردة</h3>
-              {["locations", "equipment", "freelancers"].map((type) =>
-                (incomingBookings[type] || []).map((b) => (
-                  <div key={b.id} className="booking-card">
-                    <div className="form-row">
-                      <strong>{type}</strong>
-                      <span className={`status-badge ${b.status}`}>{b.status}</span>
-                      <span>الإجمالي: {formatMoney(b.totalPriceCents, b.currency)}</span>
-                    </div>
-                    <p className="card-desc">
-                      من {new Date(b.startAt).toLocaleString()} إلى {new Date(b.endAt).toLocaleString()}
-                    </p>
-                    <div className="form-row">
-                      <button
-                        type="button"
-                        className="btn btn-approve"
-                        onClick={() => void handleBookingStatus(type, b.id, "approved")}
-                      >
-                        قبول
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-reject"
-                        onClick={() => void handleBookingStatus(type, b.id, "rejected")}
-                      >
-                        رفض
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </>
-          )}
         </div>
-      )}
-
-      {tab === "create" && (
-        <div>
-          {!isSignedIn ? (
-            <p>سجّل دخولك لإضافة استوديو أو معدة أو حفظ بروفايل فريلانس.</p>
-          ) : (
-            <>
-              <form className="panel" onSubmit={(e) => void handleCreateLocation(e)}>
-                <h3>إضافة استوديو / مكان</h3>
-                <div className="form-row">
-                  <input
-                    placeholder="الاسم"
-                    required
-                    value={locForm.name}
-                    onChange={(e) => setLocForm((p) => ({ ...p, name: e.target.value }))}
-                  />
-                  <input
-                    placeholder="Slug (مثال: daylight-studio-1)"
-                    required
-                    value={locForm.slug}
-                    onChange={(e) => setLocForm((p) => ({ ...p, slug: e.target.value }))}
-                  />
-                  <input
-                    placeholder="المدينة"
-                    required
-                    value={locForm.city}
-                    onChange={(e) => setLocForm((p) => ({ ...p, city: e.target.value }))}
-                  />
-                  <input
-                    placeholder="العنوان"
-                    required
-                    value={locForm.address}
-                    onChange={(e) => setLocForm((p) => ({ ...p, address: e.target.value }))}
-                  />
-                </div>
-                <div className="form-row">
-                  <input
-                    placeholder="الوصف"
-                    required
-                    value={locForm.description}
-                    onChange={(e) => setLocForm((p) => ({ ...p, description: e.target.value }))}
-                  />
-                  <select
-                    value={locForm.category}
-                    onChange={(e) => setLocForm((p) => ({ ...p, category: e.target.value }))}
-                  >
-                    <option value="studio">studio</option>
-                    <option value="villa">villa</option>
-                    <option value="rooftop">rooftop</option>
-                    <option value="garden">garden</option>
-                    <option value="other">other</option>
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="السعر (EGP)"
-                    required
-                    value={locForm.priceEgp}
-                    onChange={(e) => setLocForm((p) => ({ ...p, priceEgp: e.target.value }))}
-                  />
-                  <select
-                    value={locForm.pricingUnit}
-                    onChange={(e) => setLocForm((p) => ({ ...p, pricingUnit: e.target.value }))}
-                  >
-                    <option value="hour">hour</option>
-                    <option value="day">day</option>
-                  </select>
-                </div>
-                <div className="form-row">
-                  <label>
-                    صور المكان (رفع مباشر):{" "}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => setLocFiles(Array.from(e.target.files || []))}
-                    />
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="أو رابط صورة مباشر (اختياري)"
-                    value={locForm.imageUrl}
-                    onChange={(e) => setLocForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                  />
-                  <button type="submit" className="btn btn-primary" disabled={submitting}>
-                    {submitting ? "جاري الرفع والحفظ..." : "حفظ المكان"}
-                  </button>
-                </div>
-              </form>
-
-              <form className="panel" onSubmit={(e) => void handleCreateEquipment(e)}>
-                <h3>إضافة معدة</h3>
-                <div className="form-row">
-                  <input
-                    placeholder="الاسم"
-                    required
-                    value={eqForm.name}
-                    onChange={(e) => setEqForm((p) => ({ ...p, name: e.target.value }))}
-                  />
-                  <input
-                    placeholder="Slug (مثال: sony-fx3-body)"
-                    required
-                    value={eqForm.slug}
-                    onChange={(e) => setEqForm((p) => ({ ...p, slug: e.target.value }))}
-                  />
-                  <input
-                    placeholder="المدينة"
-                    required
-                    value={eqForm.city}
-                    onChange={(e) => setEqForm((p) => ({ ...p, city: e.target.value }))}
-                  />
-                  <select
-                    value={eqForm.category}
-                    onChange={(e) => setEqForm((p) => ({ ...p, category: e.target.value }))}
-                  >
-                    <option value="camera">camera</option>
-                    <option value="lens">lens</option>
-                    <option value="lighting">lighting</option>
-                    <option value="audio">audio</option>
-                    <option value="stabilizer">stabilizer</option>
-                    <option value="other">other</option>
-                  </select>
-                </div>
-                <div className="form-row">
-                  <input
-                    placeholder="الوصف"
-                    required
-                    value={eqForm.description}
-                    onChange={(e) => setEqForm((p) => ({ ...p, description: e.target.value }))}
-                  />
-                  <input
-                    type="number"
-                    placeholder="السعر (EGP)"
-                    required
-                    value={eqForm.priceEgp}
-                    onChange={(e) => setEqForm((p) => ({ ...p, priceEgp: e.target.value }))}
-                  />
-                  <input
-                    type="number"
-                    placeholder="التأمين (EGP)"
-                    value={eqForm.depositEgp}
-                    onChange={(e) => setEqForm((p) => ({ ...p, depositEgp: e.target.value }))}
-                  />
-                  <select
-                    value={eqForm.pricingUnit}
-                    onChange={(e) => setEqForm((p) => ({ ...p, pricingUnit: e.target.value }))}
-                  >
-                    <option value="day">day</option>
-                    <option value="hour">hour</option>
-                  </select>
-                </div>
-                <div className="form-row">
-                  <label>
-                    صور المعدة (رفع مباشر):{" "}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => setEqFiles(Array.from(e.target.files || []))}
-                    />
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="أو رابط صورة مباشر (اختياري)"
-                    value={eqForm.imageUrl}
-                    onChange={(e) => setEqForm((p) => ({ ...p, imageUrl: e.target.value }))}
-                  />
-                  <button type="submit" className="btn btn-primary" disabled={submitting}>
-                    {submitting ? "جاري الرفع والحفظ..." : "حفظ المعدة"}
-                  </button>
-                </div>
-              </form>
-
-              <form className="panel" onSubmit={(e) => void handleSaveFreelancer(e)}>
-                <h3>بروفايل الفريلانس الخاص بي</h3>
-                <div className="form-row">
-                  <input
-                    placeholder="التخصص (مثال: photographer)"
-                    required
-                    value={flForm.specialty}
-                    onChange={(e) => setFlForm((p) => ({ ...p, specialty: e.target.value }))}
-                  />
-                  <input
-                    placeholder="المدينة"
-                    required
-                    value={flForm.city}
-                    onChange={(e) => setFlForm((p) => ({ ...p, city: e.target.value }))}
-                  />
-                  <input
-                    placeholder="نبذة مختصرة"
-                    value={flForm.bio}
-                    onChange={(e) => setFlForm((p) => ({ ...p, bio: e.target.value }))}
-                  />
-                  <input
-                    type="number"
-                    placeholder="السعر (EGP)"
-                    required
-                    value={flForm.priceEgp}
-                    onChange={(e) => setFlForm((p) => ({ ...p, priceEgp: e.target.value }))}
-                  />
-                  <select
-                    value={flForm.pricingUnit}
-                    onChange={(e) => setFlForm((p) => ({ ...p, pricingUnit: e.target.value }))}
-                  >
-                    <option value="day">day</option>
-                    <option value="hour">hour</option>
-                  </select>
-                  <button type="submit" className="btn btn-primary">
-                    حفظ البروفايل
-                  </button>
-                </div>
-              </form>
-            </>
-          )}
-        </div>
-      )}
+      </footer>
     </div>
   );
 }
