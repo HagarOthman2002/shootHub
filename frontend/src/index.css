@@ -262,3 +262,14 @@ select {
   background: var(--error-bg);
   color: var(--error-text);
 }
+
+.card-media {
+  height: 180px;
+  background-color: #e2e8f0;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 10px 12px;
+}

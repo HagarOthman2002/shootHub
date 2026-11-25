@@ -9,6 +9,7 @@ import { locationsRouter } from "./routes/locations";
 import { equipmentRouter } from "./routes/equipment";
 import { freelancersRouter } from "./routes/freelancers";
 import { bookingsRouter } from "./routes/bookings";
+import { uploadsRouter } from "./routes/uploads.js";
 
 
 import {clerkMiddleware} from "@clerk/express"
@@ -38,6 +39,7 @@ app.use("/api/locations", locationsRouter);
 app.use("/api/equipment", equipmentRouter);
 app.use("/api/freelancers", freelancersRouter);
 app.use("/api/bookings", bookingsRouter);
+app.use("/api/uploads", uploadsRouter);
 
 const publicDir = path.join(process.cwd(), "public")
 if(fs.existsSync(publicDir)){

@@ -38,6 +38,7 @@ export default function App() {
   const [tab, setTab] = useState("locations");
   const [cityFilter, setCityFilter] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [banner, setBanner] = useState(null);
 
   const [locationsList, setLocationsList] = useState([]);
@@ -76,7 +77,9 @@ export default function App() {
     category: "studio",
     priceEgp: "500",
     pricingUnit: "hour",
+    imageUrl: "",
   });
+  const [locFiles, setLocFiles] = useState([]);
 
   const [eqForm, setEqForm] = useState({
     name: "",
@@ -88,7 +91,9 @@ export default function App() {
     depositEgp: "5000",
     pricingUnit: "day",
     city: "",
+    imageUrl: "",
   });
+  const [eqFiles, setEqFiles] = useState([]);
 
   const [flForm, setFlForm] = useState({
     specialty: "photographer",
@@ -199,6 +204,53 @@ export default function App() {
     setBanner(null);
   }
 
+  async function uploadFileToImageKit(file, folder) {
+    const headers = await authHeaders();
+    const authRes = await fetch("/api/uploads/imagekit-auth", { headers });
+    if (!authRes.ok) {
+      throw new Error("تعذر الحصول على تصريح رفع الصور من السيرفر");
+    }
+    const { token, expire, signature, publicKey } = await authRes.json();
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("fileName", file.name);
+    formData.append("publicKey", publicKey);
+    formData.append("signature", signature);
+    formData.append("expire", String(expire));
+    formData.append("token", token);
+    formData.append("folder", folder);
+
+    const uploadRes = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await uploadRes.json();
+    if (!uploadRes.ok) {
+      throw new Error(data.message || "فشل رفع الصورة إلى ImageKit");
+    }
+    return { imageUrl: data.url, imageKitFileId: data.fileId };
+  }
+
+  async function buildImagesPayload(files, manualUrl, folder) {
+    const uploaded = [];
+    for (let i = 0; i < files.length; i += 1) {
+      const res = await uploadFileToImageKit(files[i], folder);
+      uploaded.push({
+        imageUrl: res.imageUrl,
+        imageKitFileId: res.imageKitFileId,
+        isPrimary: i === 0,
+      });
+    }
+    if (manualUrl.trim()) {
+      uploaded.push({
+        imageUrl: manualUrl.trim(),
+        isPrimary: uploaded.length === 0,
+      });
+    }
+    return uploaded;
+  }
+
   async function handleCreateBooking(e) {
     e.preventDefault();
     if (!isSignedIn) {
@@ -263,76 +315,106 @@ export default function App() {
 
   async function handleCreateLocation(e) {
     e.preventDefault();
-    const headers = await authHeaders();
-    const res = await fetch("/api/locations", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        name: locForm.name.trim(),
-        slug: locForm.slug.trim(),
-        description: locForm.description.trim(),
-        city: locForm.city.trim(),
-        address: locForm.address.trim(),
-        category: locForm.category,
-        priceCents: Math.round(Number(locForm.priceEgp) * 100),
-        pricingUnit: locForm.pricingUnit,
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setBanner({ type: "error", text: json.error || "تعذر إضافة الاستوديو/المكان." });
-      return;
+    setSubmitting(true);
+    setBanner(null);
+    try {
+      const images = await buildImagesPayload(locFiles, locForm.imageUrl, "/shoothub/locations");
+      const headers = await authHeaders();
+      const res = await fetch("/api/locations", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          name: locForm.name.trim(),
+          slug: locForm.slug.trim(),
+          description: locForm.description.trim(),
+          city: locForm.city.trim(),
+          address: locForm.address.trim(),
+          category: locForm.category,
+          priceCents: Math.round(Number(locForm.priceEgp) * 100),
+          pricingUnit: locForm.pricingUnit,
+          ...(images.length > 0 ? { images } : {}),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setBanner({ type: "error", text: json.error || "تعذر إضافة الاستوديو/المكان." });
+        return;
+      }
+      setBanner({ type: "success", text: "تمت إضافة الاستوديو/المكان مع الصور بنجاح." });
+      setLocForm({
+        name: "",
+        slug: "",
+        description: "",
+        city: "",
+        address: "",
+        category: "studio",
+        priceEgp: "500",
+        pricingUnit: "hour",
+        imageUrl: "",
+      });
+      setLocFiles([]);
+      await loadListings();
+    } catch (err) {
+      setBanner({
+        type: "error",
+        text: err instanceof Error ? err.message : "حدث خطأ أثناء رفع الصور أو حفظ المكان.",
+      });
+    } finally {
+      setSubmitting(false);
     }
-    setBanner({ type: "success", text: "تمت إضافة الاستوديو/المكان بنجاح." });
-    setLocForm({
-      name: "",
-      slug: "",
-      description: "",
-      city: "",
-      address: "",
-      category: "studio",
-      priceEgp: "500",
-      pricingUnit: "hour",
-    });
-    await loadListings();
   }
 
   async function handleCreateEquipment(e) {
     e.preventDefault();
-    const headers = await authHeaders();
-    const res = await fetch("/api/equipment", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        name: eqForm.name.trim(),
-        slug: eqForm.slug.trim(),
-        description: eqForm.description.trim(),
-        category: eqForm.category,
-        condition: eqForm.condition,
-        priceCents: Math.round(Number(eqForm.priceEgp) * 100),
-        depositCents: Math.round(Number(eqForm.depositEgp) * 100),
-        pricingUnit: eqForm.pricingUnit,
-        city: eqForm.city.trim(),
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setBanner({ type: "error", text: json.error || "تعذر إضافة المعدة." });
-      return;
+    setSubmitting(true);
+    setBanner(null);
+    try {
+      const images = await buildImagesPayload(eqFiles, eqForm.imageUrl, "/shoothub/equipment");
+      const headers = await authHeaders();
+      const res = await fetch("/api/equipment", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          name: eqForm.name.trim(),
+          slug: eqForm.slug.trim(),
+          description: eqForm.description.trim(),
+          category: eqForm.category,
+          condition: eqForm.condition,
+          priceCents: Math.round(Number(eqForm.priceEgp) * 100),
+          depositCents: Math.round(Number(eqForm.depositEgp) * 100),
+          pricingUnit: eqForm.pricingUnit,
+          city: eqForm.city.trim(),
+          ...(images.length > 0 ? { images } : {}),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setBanner({ type: "error", text: json.error || "تعذر إضافة المعدة." });
+        return;
+      }
+      setBanner({ type: "success", text: "تمت إضافة المعدة مع الصور بنجاح." });
+      setEqForm({
+        name: "",
+        slug: "",
+        description: "",
+        category: "camera",
+        condition: "excellent",
+        priceEgp: "1200",
+        depositEgp: "5000",
+        pricingUnit: "day",
+        city: "",
+        imageUrl: "",
+      });
+      setEqFiles([]);
+      await loadListings();
+    } catch (err) {
+      setBanner({
+        type: "error",
+        text: err instanceof Error ? err.message : "حدث خطأ أثناء رفع الصور أو حفظ المعدة.",
+      });
+    } finally {
+      setSubmitting(false);
     }
-    setBanner({ type: "success", text: "تمت إضافة المعدة بنجاح." });
-    setEqForm({
-      name: "",
-      slug: "",
-      description: "",
-      category: "camera",
-      condition: "excellent",
-      priceEgp: "1200",
-      depositEgp: "5000",
-      pricingUnit: "day",
-      city: "",
-    });
-    await loadListings();
   }
 
   async function handleSaveFreelancer(e) {
@@ -426,13 +508,7 @@ export default function App() {
             تحديث النتائج
           </button>
           {cityFilter && (
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                setCityFilter("");
-              }}
-            >
+            <button type="button" className="btn" onClick={() => setCityFilter("")}>
               مسح الفلتر
             </button>
           )}
@@ -446,7 +522,14 @@ export default function App() {
         <div className="grid">
           {locationsList.map((loc) => (
             <article key={loc.id} className="card">
-              <div className="card-media">
+              <div
+                className="card-media"
+                style={
+                  loc.primaryImageUrl
+                    ? { backgroundImage: `url(${loc.primaryImageUrl})` }
+                    : undefined
+                }
+              >
                 <span className="pill">{loc.category}</span>
                 <span className="pill">{loc.city}</span>
               </div>
@@ -476,7 +559,14 @@ export default function App() {
         <div className="grid">
           {equipmentList.map((item) => (
             <article key={item.id} className="card">
-              <div className="card-media">
+              <div
+                className="card-media"
+                style={
+                  item.primaryImageUrl
+                    ? { backgroundImage: `url(${item.primaryImageUrl})` }
+                    : undefined
+                }
+              >
                 <span className="pill">{item.category}</span>
                 <span className="pill">{item.city}</span>
               </div>
@@ -716,8 +806,25 @@ export default function App() {
                     <option value="hour">hour</option>
                     <option value="day">day</option>
                   </select>
-                  <button type="submit" className="btn btn-primary">
-                    حفظ المكان
+                </div>
+                <div className="form-row">
+                  <label>
+                    صور المكان (رفع مباشر):{" "}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => setLocFiles(Array.from(e.target.files || []))}
+                    />
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="أو رابط صورة مباشر (اختياري)"
+                    value={locForm.imageUrl}
+                    onChange={(e) => setLocForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                  />
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? "جاري الرفع والحفظ..." : "حفظ المكان"}
                   </button>
                 </div>
               </form>
@@ -782,8 +889,25 @@ export default function App() {
                     <option value="day">day</option>
                     <option value="hour">hour</option>
                   </select>
-                  <button type="submit" className="btn btn-primary">
-                    حفظ المعدة
+                </div>
+                <div className="form-row">
+                  <label>
+                    صور المعدة (رفع مباشر):{" "}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => setEqFiles(Array.from(e.target.files || []))}
+                    />
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="أو رابط صورة مباشر (اختياري)"
+                    value={eqForm.imageUrl}
+                    onChange={(e) => setEqForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                  />
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? "جاري الرفع والحفظ..." : "حفظ المعدة"}
                   </button>
                 </div>
               </form>
